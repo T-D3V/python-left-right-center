@@ -1,0 +1,15 @@
+{
+  "name": "LRC",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "python",
+  "workspaceFolder": "/usr/src/lrc",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "donjayamanne.python-extension-pack"
+      ]
+    }
+  },
+  "forwardPorts": [
+  ]
+}
