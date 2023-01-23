@@ -3,137 +3,169 @@ import typer
 
 class Dice:
   MAX_NUMBER:int = 6
-  __random:int = random.randint(1, MAX_NUMBER)
-  __lastNumber:int
+  __lastNumber:int = 0
   
   @property
-  def lastNumber(self) -> int:
+  def __random(self) -> int:
+    return random.randint(1, self.MAX_NUMBER)
+  
+  @property
+  def LastNumber(self) -> int:
     return self.__lastNumber
   
-  def rollTheDice(self) -> None:
+  def RollTheDice(self) -> None:
     self.__lastNumber = self.__random
-    
+
 class Cup:
-  COUNT_DICE:int
-  __dice:list[Dice]
+  AMT_DICE:int = 3
+  __dice:list[Dice] = []
   
   def __init__(self) -> None:
-    pass
+    i = 0
+    for i in range(0, self.AMT_DICE):
+      self.__dice.append(Dice())
+      i += 1
   
-  def shake(self) -> None:
+  def Shake(self) -> None:
     for dice in self.__dice:
-      dice.rollTheDice()
+      dice.RollTheDice()
   
-  def getNumbers(self, amount:int) -> list[int]:
-    numbers:list[int] = []
-    
-    for index, dice in enumerate(self.__dice):
-      if(index <= amount):
-        numbers.append(self.__dice[index].lastNumber)
-        
-    return numbers
+  def GetNumbers(self, amt:int) -> list[int]:
+    nums:list[int] = []
+    for dice in self.__dice:
+      nums.append(dice.LastNumber)
       
-  
+    return nums[:amt]
+
 class Player:
-  __chips:int
+  __chips:int = 3
   __name:str
-  def __init__(self, name:str) -> None:
-    self.__name:str = name
   
   @property
-  def name(self) -> str:
+  def Name(self) -> str:
     return self.__name
-  
+
   @property
-  def stillHasChips(self) -> bool:
+  def StillHasChips(self) -> bool:
     return True if self.__chips > 0 else False
   
   @property
-  def amountOfDice(self) -> int:
-    return 1
+  def AmountOfDice(self) -> int:
+    return self.__chips if self.__chips < 3 else 3
   
-  def recieveChip(self) -> None:
+  def __init__(self, name:str) -> None:
+    self.__name = name
+    
+  def RecieveChip(self) -> None:
     self.__chips += 1
-  
-  def passChip(self) -> None:
+
+  def PassChip(self) -> None:
     self.__chips -= 1
   
-  #unclear
-  def playTurn(self, cup:Cup) -> list[int]:
-    return []
-  
-  def printNameAndChips(self) -> str:
-    return self.name + str(self.__chips)
-  
-  #unclear
-  def printDice(self) -> str:
-    return ""
-  
-class Gui(): 
-  
-  def askPlayerInput(self) -> list[Player]:
-    playerList:list[Player] = []
-    def askPlayer(self, name: str = typer.Option(..., prompt=True)) -> None:
-      playerList.append(Player(name))
-      def askPlayerAdd(self, choice: str = typer.Option("[Y/N]",prompt=True)):
-        if choice == "Y":
-          typer.run(askPlayer)
-        else: typer.Exit
-      typer.run(askPlayerAdd)
-    typer.run(askPlayer)
-    return playerList
+  def PlayTurn(self, cup:Cup) -> list[int]:
+    cup.Shake()
+    numbers = cup.GetNumbers(self.AmountOfDice)
+    print(self.PrintDice(numbers))
+    return numbers
 
+  def PrintNameAndChips(self) -> str:
+    return self.__name + " has " + str(self.__chips) + " chips."
+  
+  def PrintDice(self, rolls:list[int]) -> str:
+    return "Player " + self.__name + " has rolled: " + ", ".join(map(str, rolls))
+
+class GUI:
+  def AskPlayerInput(self) -> list[Player]:
+    playerList:list[Player] = []
+
+    while True:
+      playerList.append(Player(typer.prompt("Name")))
+      if not self.AskAnotherPlayer():
+        break
     
-      
+    return playerList
   
-  def askAnotherGame(self) -> bool:
-    return True
+  def AskAnotherPlayer(self) -> bool:
+    choice = typer.prompt("Add another Player [Y/N]")
+    return True if choice == "Y" else False
   
-  def printRanks(self, players: list[Player]) -> None:
-    pass
+  def PrintRanks(self, players:list[Player]) -> None:
+    print("###Points:###")
+    for player in players:
+      print(f"{player.PrintNameAndChips()}")
+    print("### End of Round ##\n")
   
-  def printWinner(self, players:list[Player]) -> None:
-    pass
-  
+  def PrintWinner(self, players:list[Player]) -> None:
+    print("###End result:###")
+    for player in players:
+      if player.StillHasChips:
+        print(f"Player {player.Name} has won.")
+
 class Game:
   __currentPlayer:Player
-  __playerList:list[Player]
-  __gui:Gui
-  __cup:Cup
+  __playerList:list[Player] = []
+  __gui:GUI = GUI()
+  __cup:Cup = Cup()
   
   def __init__(self) -> None:
-    pass
+    self.__playerList = self.__gui.AskPlayerInput()
   
-  def play(self) -> None:
-    pass
-  
-  def processRolledNumbers(self, numbers:list[int]) -> None:
-    pass
-  
-  def setStartPlayer(self) -> None:
-    self.__currentPlayer = random.choice(self.__playerList)
-  
-  def playerRightOfCurrentPlayer(self) -> Player:
-    return self.__playerList[self.__playerList.index(self.__currentPlayer) + 1]
-  
-  def playerLeftOfCurrentPlayer(self) -> Player:
-    return self.__playerList[self.__playerList.index(self.__currentPlayer) - 1]
-
-  
-  def moreThanOnePlayerHasChips(self) -> bool:
-    counter = 0
-    for player in self.__playerList:
-      if(player.__chips > 0):
-        counter += 1
-    return True if counter >= 2 else False
-  
-  def giveChipToLeft(self) -> None:
-    pass
-  
-  def giveChipToRight(self) -> None:
-    pass
-  
-  def putChipInMiddle(self) -> None:
-    pass
-  
+  def Play(self) -> None:
+    self.SetStartingPlayer()
+    while self.MoreThanOnePlayerHasChips():
+      if self.__currentPlayer.StillHasChips:
+        rolledNumbers = self.__currentPlayer.PlayTurn(self.__cup)
+        self.ProcessRolledNumbers(rolledNumbers)
+        self.__currentPlayer = self.PlayerRightOfCurrentPlayer()
+        self.__gui.PrintRanks(self.__playerList)
+      else:
+        self.__currentPlayer = self.PlayerRightOfCurrentPlayer()
     
+    self.__gui.PrintWinner(self.__playerList)
+  
+  def ProcessRolledNumbers(self, nums:list[int]) -> None:
+    for num in nums:
+      if num == 4:
+        self.PassChipLeft()
+      elif num == 5:
+        self.PassChipRight()
+      elif num == 6:
+        self.PutChipInMiddle()
+  
+  def SetStartingPlayer(self) -> None:
+    self.__currentPlayer = self.__playerList[random.randint(0, len(self.__playerList) - 1)]
+  
+  def PlayerRightOfCurrentPlayer(self) -> Player:
+    currentPos = self.__playerList.index(self.__currentPlayer)
+    nextPos = currentPos + 1 if currentPos < len(self.__playerList)-1 else 0
+    
+    return self.__playerList[nextPos]
+    
+  
+  def PlayerLeftOfCurrentPlayer(self) -> Player:
+    currentPos = self.__playerList.index(self.__currentPlayer)
+    nextPos = currentPos - 1 if currentPos > 0 else -1
+    
+    return self.__playerList[nextPos]
+  
+  def MoreThanOnePlayerHasChips(self) -> bool:
+    playersWithChips = 0
+    for player in self.__playerList:
+      if player.StillHasChips:
+        playersWithChips += 1
+    return True if playersWithChips >= 2 else False
+  
+  def PassChipLeft(self) -> None:
+    self.__currentPlayer.PassChip()
+    self.PlayerLeftOfCurrentPlayer().RecieveChip()
+  
+  def PassChipRight(self) -> None:
+    self.__currentPlayer.PassChip()
+    self.PlayerRightOfCurrentPlayer().RecieveChip()
+  
+  def PutChipInMiddle(self) -> None:
+    self.__currentPlayer.PassChip()
+
+if __name__ == "__main__":
+  typer.run(Game().Play)
+  typer.Exit
